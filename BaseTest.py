@@ -2,6 +2,7 @@
 from appium import webdriver  
 from inspect import isfunction
 from openpyxl import Workbook
+import aircv as ac
 import datetime
 import threading
 import time
@@ -42,6 +43,60 @@ class BaseTest(object):
     def getDriver(self):
         return self.driver
     
+    def getPositionByImage(self,file='shot.png'):
+        mainimg='main.png'
+        cv2=ac.cv2
+        metlist=[cv2.TM_CCOEFF_NORMED,cv2.TM_CCORR_NORMED,cv2.TM_SQDIFF_NORMED]
+        self.driver.get_screenshot_as_file(mainimg)
+        mainimg=ac.imread('main.png')
+        shotimg=ac.imread(file)
+        for method in metlist:
+            result = ac.find_all_template(mainimg, shotimg,threshold=0.5,maxcnt=1,method=method)
+            if result:
+                break
+        if result:
+            pos=result[0]
+        else:
+            raise ValueError('can not recognize the picture %s' %file)
+        X = int(pos['result'][0])
+        Y = int(pos['result'][1])
+        return X,Y
+    
+    def clickByImage(self,file='shot.png'):
+        mainimg='main.png'
+        cv2=ac.cv2
+        metlist=[cv2.TM_CCOEFF_NORMED,cv2.TM_CCORR_NORMED,cv2.TM_SQDIFF_NORMED]
+        self.driver.get_screenshot_as_file(mainimg)
+        mainimg=ac.imread('main.png')
+        shotimg=ac.imread(file)
+        #grayA = cv2.cvtColor(mainimg,cv2.COLOR_BGR2GRAY)
+        #grayB = cv2.cvtColor(shotimg,cv2.COLOR_BGR2GRAY)
+        #cv2.imshow('show',grayA)
+        #cv2.waitKey(0)
+        #cv2.imshow('show2',grayB)
+        #cv2.waitKey(0)
+        
+        #result = ac.find_all_template(mainimg, shotimg,threshold=0.5,maxcnt=1)
+        
+        for method in metlist:
+            result = ac.find_all_template(mainimg, shotimg,threshold=0.5,maxcnt=1,method=method)
+            #print result
+            if result:
+                break
+        if result:
+            pos=result[0]
+        else:
+            raise ValueError('can not recognize the picture %s' %file)
+        #img_width = mainimg.shape[1]
+        #img_height = mainimg.shape[0]
+        #print shotimg.shape[1],shotimg.shape[0]
+        #phone_width=self.driver.get_window_size()['width']        
+        #phone_height=self.driver.get_window_size()['height']
+        X = int(pos['result'][0])
+        Y = int(pos['result'][1])
+        #print phone_width,phone_height,img_width,img_height,X,Y
+        #print (phone_width/img_width)*X,(phone_height/img_height)
+        self.driver.tap([(X,Y)])
     def down(self):
         print 'down'
         self.driver.quit()

@@ -23,5 +23,6 @@ class test_case_01(BaseTest):
     def tearDown(self):
         
         self.down()
-    
-   
+if __name__=='__main__':
+    tc01=test_case_01()
+    tc01.clickByImage() 
