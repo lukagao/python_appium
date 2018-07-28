@@ -5,7 +5,10 @@ from openpyxl import Workbook
 import aircv as ac
 import datetime
 import threading
-import time
+from Queue import Queue
+import subprocess
+import sys
+
 class BaseTest(object):
     platformName=None
     platformVersion=None
@@ -109,6 +112,23 @@ def BaseRun(func):
     return inner
 
 
+def runCMD(stdq,cmd):
+    
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    lineNum=0
+    try:
+        for line in iter(p.stdout.readline,b''):
+            lineNum+=1
+            print line
+            print '---------------------------------------------------------------------'
+            if lineNum==2:
+                print 'appium started'
+                stdq.put('start')  
+                
+    except Exception as e:
+        print e    
+  
+
 def runLoop(caseNum,caseList,loop,globalLoop,sheet):
     testCase=caseList[caseNum]
     tc=testCase()
@@ -144,7 +164,7 @@ def runLoop(caseNum,caseList,loop,globalLoop,sheet):
         else:
             sheet.cell(row=caseNum+2,column=x+1,value=result[x])      
     
-def runTest(caseList,loop=2,globalLoop=2,multiRun=False): 
+def runGlobal(caseList,loop=1,globalLoop=1,multiRun=False): 
     colum=['caseID','appPackage','platformName','platformVersion','loops','failTimes','failReason']
     try:
         wb=Workbook()
@@ -171,3 +191,19 @@ def runTest(caseList,loop=2,globalLoop=2,multiRun=False):
         print e
     finally:  
         wb.save(filename)
+
+def runTest(caseList,loop=1,globalLoop=1,cmds=None,multiRun=False):
+    stdq=Queue()
+    if cmds:
+        for cmd in cmds:
+            threading.Thread(target=runCMD,args=(stdq,cmd,)).start()
+            while(True):
+                if not stdq.empty() and stdq.get()=='start':
+                    print cmd+' has been started'
+                    break
+    print 'start test:'
+    runGlobal(caseList,loop=loop,globalLoop=globalLoop,multiRun=multiRun)  
+    print 'end test:'
+    #cmdprocess.terminate()
+    sys.exit()
+    
